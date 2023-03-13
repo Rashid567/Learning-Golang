@@ -1,4 +1,4 @@
-package calc
+package math_calc
 
 
 func Add(numbers ...int) (sum int) {

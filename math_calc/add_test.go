@@ -1,4 +1,4 @@
-package calc
+package math_calc
 
 import "testing"
 
