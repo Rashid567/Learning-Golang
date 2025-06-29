@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:17.5
+    restart: always
+    volumes:
+      - type: bind
+        source: postgres/init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        read_only: true
+    ports:
+      - protocol: tcp
+        target: 5432
+        published: 5432
+    env_file:
+      - configs/postgres.env
+
+  zookeeper:
+    image: zookeeper
+    restart: always
+    env_file:
+      - configs/zookeeper.env
+
+  kafka:
+    image: confluentinc/cp-kafka:7.8.0
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - protocol: tcp
+        target: 9094
+        published: 9094
+    env_file:
+      - configs/kafka.env
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.8.0
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:9092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic level_0_topic --replication-factor 1 --partitions 3
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      "
+
+  kafka_ui:
+    image: provectuslabs/kafka-ui:master
+    restart: always
+    depends_on:
+      - kafka
+    ports:
+      - protocol: tcp
+        target: 8080
+        published: 20002
+    env_file:
+      - configs/kafka_ui.env
